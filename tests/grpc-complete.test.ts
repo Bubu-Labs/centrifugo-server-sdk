@@ -8,6 +8,7 @@ describe("Centrifugo SDK - Complete gRPC API Methods", () => {
         centrifugo = new Centrifugo({
             mode: "GRPC",
             endpoint: "localhost:10000",
+            apiKey: "test_grpc_api_key_12345",
             logLevel: "debug",
             debug: true,
         });

@@ -9,6 +9,7 @@ describe("Centrifugo SDK - gRPC with Queue Integration Tests", () => {
         centrifugo = new Centrifugo({
             mode: CentrifugoMode.GRPC,
             endpoint: "localhost:10000",
+            apiKey: "test_grpc_api_key_12345",
             enableQueue: true,
             queueConfig: {
                 name: "centrifugo-grpc-queue",

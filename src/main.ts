@@ -35,6 +35,7 @@ export class Centrifugo {
             this.log("debug", `Creating GRPC client for endpoint: ${config.endpoint}`);
             this.client = new CentrifugoGRPCClient({
                 endpoint: config.endpoint,
+                apiKey: config.apiKey,
             } as GRPCClientConfig);
         }
 

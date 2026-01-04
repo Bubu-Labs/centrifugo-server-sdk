@@ -27,7 +27,8 @@
     },
     "grpc_api": {
         "enabled": true,
-        "port": 10000
+        "port": 10000,
+        "key": "test_grpc_api_key_12345"
     },
     "http_server": {
         "port": "8000",

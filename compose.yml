@@ -18,7 +18,7 @@ services:
     environment:
       # Environment variables sẽ override config.json
       - CENTRIFUGO_LOG_LEVEL=${CENTRIFUGO_LOG_LEVEL:-info}
-      - CENTRIFUGO_
+      - CENTRIFUGO_GRPC_API_KEY=test_grpc_api_key_12345
     networks:
       - network
     healthcheck:
