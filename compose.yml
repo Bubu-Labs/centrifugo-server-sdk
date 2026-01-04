@@ -1,0 +1,38 @@
+services:
+  centrifugo:
+    image: centrifugo/centrifugo:v6.5.2
+    container_name: centrifugo
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # HTTP/WebSocket endpoint
+      - "10000:10000"  # gRPC API endpoint
+    volumes:
+      - ./config.json:/centrifugo/config.json
+      - ./data:/centrifugo/data
+    command: centrifugo --config=/centrifugo/config.json
+    # Increase file descriptor limit for Centrifugo
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    environment:
+      # Environment variables sẽ override config.json
+      - CENTRIFUGO_LOG_LEVEL=${CENTRIFUGO_LOG_LEVEL:-info}
+      - CENTRIFUGO_
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:

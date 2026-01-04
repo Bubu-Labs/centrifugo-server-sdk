@@ -1,0 +1,103 @@
+{
+    "client": {
+        "allowed_origins": [
+            "*"
+        ],
+        "ping_interval": "10s",
+        "pong_timeout": "8s",
+        "channel_limit": 128,
+        "user_connection_limit": 0,
+        "connection_limit": 0,
+        "connection_rate_limit": 0,
+        "queue_max_size": 1048576,
+        "history_max_publication_limit": 300,
+        "recovery_max_publication_limit": 300,
+        "stale_close_delay": "10s",
+        "connect_include_server_time": false,
+        "allow_anonymous_connect_without_token": true,
+        "subscribe_to_user_personal_channel": {
+            "enabled": true,
+            "personal_channel_namespace": "user",
+            "single_connection": false
+        }
+    },
+    "http_api": {
+        "enabled": true,
+        "key": "test_api_key_12345"
+    },
+    "grpc_api": {
+        "enabled": true,
+        "port": 10000
+    },
+    "http_server": {
+        "port": "8000",
+        "address": "0.0.0.0"
+    },
+    "websocket": {
+        "disabled": false,
+        "compression": true,
+        "compression_min_size": 1024,
+        "compression_level": 1,
+        "message_size_limit": 65536,
+        "read_buffer_size": 4096,
+        "write_buffer_size": 4096,
+        "use_write_buffer_pool": false
+    },
+    "log": {
+        "level": "debug"
+    },
+    "channel": {
+        "without_namespace": {
+            "allow_subscribe_for_client": true,
+            "presence": true,
+            "join_leave": true,
+            "history_size": 100,
+            "history_ttl": "1h"
+        },
+        "namespaces": [
+            {
+                "name": "public",
+                "allow_subscribe_for_client": true,
+                "allow_publish_for_client": true,
+                "presence": true,
+                "force_recovery": true,
+                "force_recovery_mode": "cache",
+                "force_push_join_leave": false,
+                "history_size": 10,
+                "history_ttl": "1h",
+                "join_leave": true,
+                "allow_presence_for_subscriber": true,
+                "allow_presence_for_client": true
+            },
+            {
+                "name": "private",
+                "allow_subscribe_for_client": false,
+                "allow_publish_for_client": true,
+                "presence": true,
+                "join_leave": true,
+                "force_recovery": true,
+                "force_recovery_mode": "cache",
+                "force_push_join_leave": false,
+                "history_size": 10,
+                "history_ttl": "1h"
+            },
+            {
+                "name": "user",
+                "presence": true,
+                "force_recovery": true,
+                "force_recovery_mode": "cache",
+                "history_size": 10,
+                "history_ttl": "1h"
+            }
+        ]
+    },
+    "engine": {
+        "type": "memory"
+    },
+    "health": {
+        "enabled": true
+    },
+    "debug": {
+        "enabled": true
+    }
+}
