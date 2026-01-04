@@ -98,25 +98,34 @@ export class CentrifugoGRPCClient {
         });
     }
 
-    async publish(channel: string, data: Record<string, any>): Promise<void> {
+    async publish(channel: string, data: Record<string, any>, idempotencyKey?: string): Promise<void> {
         return this.callGRPC((metadata, callback) => {
-            const request = {
+            const request: any = {
                 channel,
                 data: Buffer.from(JSON.stringify(data)),
             };
+            // Add idempotency_key if provided
+            if (idempotencyKey) {
+                request.idempotency_key = idempotencyKey;
+            }
             this.client!.publish(request, metadata, callback);
         });
     }
 
     async broadcast(
         channels: string[],
-        data: Record<string, any>
+        data: Record<string, any>,
+        idempotencyKey?: string
     ): Promise<void> {
         return this.callGRPC((metadata, callback) => {
-            const request = {
+            const request: any = {
                 channels,
                 data: Buffer.from(JSON.stringify(data)),
             };
+            // Add idempotency_key if provided
+            if (idempotencyKey) {
+                request.idempotency_key = idempotencyKey;
+            }
             this.client!.broadcast(request, metadata, callback);
         });
     }

@@ -3,6 +3,13 @@ import axios, { AxiosInstance } from "axios";
 export interface PublishOptions {
     channel: string;
     data: Record<string, any>;
+    idempotency_key?: string; // Optional idempotency key for duplicate protection
+}
+
+export interface BroadcastOptions {
+    channels: string[];
+    data: Record<string, any>;
+    idempotency_key?: string; // Optional idempotency key for duplicate protection
 }
 
 export interface HistoryOptions {
@@ -105,12 +112,18 @@ export class CentrifugoAPIClient {
 
     async publish(options: PublishOptions): Promise<void> {
         try {
+            const payload: any = {
+                channel: options.channel,
+                data: options.data,
+            };
+            // Add idempotency_key if provided
+            if (options.idempotency_key) {
+                payload.idempotency_key = options.idempotency_key;
+            }
+
             const response = await this.client.post<CentrifugoAPIResponse>(
                 "/api/publish",
-                {
-                    channel: options.channel,
-                    data: options.data,
-                }
+                payload
             );
 
             if (response.data.error) {
@@ -122,17 +135,20 @@ export class CentrifugoAPIClient {
         }
     }
 
-    async broadcast(
-        channels: string[],
-        data: Record<string, any>
-    ): Promise<void> {
+    async broadcast(options: BroadcastOptions): Promise<void> {
         try {
+            const payload: any = {
+                channels: options.channels,
+                data: options.data,
+            };
+            // Add idempotency_key if provided
+            if (options.idempotency_key) {
+                payload.idempotency_key = options.idempotency_key;
+            }
+
             const response = await this.client.post<CentrifugoAPIResponse>(
                 "/api/broadcast",
-                {
-                    channels,
-                    data,
-                }
+                payload
             );
 
             if (response.data.error) {

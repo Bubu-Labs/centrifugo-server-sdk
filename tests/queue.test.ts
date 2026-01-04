@@ -30,13 +30,13 @@ describe("Centrifugo SDK - Queue Tests", () => {
     });
 
     test("should start queue worker", async () => {
-        const queue = centrifugo.getQueue();
+        const queue = await centrifugo.getQueue();
         expect(queue).toBeDefined();
         expect(queue).not.toBeNull();
     });
 
     test("should queue a publish job", async () => {
-        const queue = centrifugo.getQueue();
+        const queue = await centrifugo.getQueue();
         if (queue) {
             // addJob returns void, not the job
             await queue.addJob("publish", {
@@ -48,7 +48,7 @@ describe("Centrifugo SDK - Queue Tests", () => {
     });
 
     test("should queue multiple jobs", async () => {
-        const queue = centrifugo.getQueue();
+        const queue = await centrifugo.getQueue();
         if (queue) {
             const jobs = [];
             for (let i = 0; i < 3; i++) {
@@ -82,7 +82,7 @@ describe("Centrifugo SDK - Queue Tests", () => {
     });
 
     test("should get queue statistics", async () => {
-        const queue = centrifugo.getQueue();
+        const queue = await centrifugo.getQueue();
         if (queue) {
             // Give it a moment for jobs to process
             await new Promise((resolve) => setTimeout(resolve, 500));

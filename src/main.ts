@@ -1,8 +1,10 @@
-import { CentrifugoClient, CentrifugoConfig, CentrifugoMode, CentrifugoModeType } from "@core/type";
-import { CentrifugoAPIClient } from "./api";
+import { CentrifugoClient, CentrifugoConfig, CentrifugoMode, CentrifugoModeType, IdempotencyConfig, IdempotencyGenerator } from "@core/type";
+import { CentrifugoAPIClient, BroadcastOptions, PublishOptions } from "./api";
 import { CentrifugoGRPCClient } from "main";
 import { GRPCClientConfig } from "./grpc";
-import { CentrifugoQueue } from "main";
+import type { CentrifugoQueue } from "main";
+import type { LogLevel } from "./lib/logger";
+import { randomUUID } from "crypto";
 
 
 
@@ -11,13 +13,25 @@ export class Centrifugo {
     private client: CentrifugoClient;
     private queue: CentrifugoQueue | null = null;
     private mode: CentrifugoMode;
-    private debug: boolean;
-    private logLevel: "error" | "warn" | "info" | "debug";
+    private logEnabled: boolean;
+    private logLevel: LogLevel;
+    private idempotency: IdempotencyConfig;
 
     constructor(config: CentrifugoConfig) {
         this.config = config;
-        this.debug = config.debug ?? false;
-        this.logLevel = config.logLevel ?? "info";
+        
+        // Setup logging with new logOption
+        const logOption = config.logOption ?? { enable: true, level: "info" };
+        this.logEnabled = logOption.enable ?? (config.debug ?? true);
+        this.logLevel = logOption.level ?? (config.logLevel ?? "info");
+        
+        // Setup idempotency config with default UUID generator if enabled but no custom generator
+        this.idempotency = config.idempotency ?? { enabled: false };
+        if (this.idempotency.enabled && !this.idempotency.generate) {
+            // Use crypto UUID v4 as default idempotency key generator
+            this.idempotency.generate = () => randomUUID();
+        }
+        
         this.mode =
             config.mode === "API"
                 ? CentrifugoMode.API
@@ -39,11 +53,8 @@ export class Centrifugo {
             } as GRPCClientConfig);
         }
 
-        // Initialize queue if enabled
-        if (config.enableQueue) {
-            this.log("info", "Queue is enabled");
-            this.queue = new CentrifugoQueue(config.queueConfig);
-        }
+        // Queue will be lazy loaded when needed
+        // This keeps the initial bundle size smaller
     }
 
     /**
@@ -77,23 +88,36 @@ export class Centrifugo {
     }
 
     /**
-     * Publish a message to a specific channel
+     * Publish a message to a specific channel with optional idempotency support
      */
     async publish(
         channel: string,
-        data: Record<string, any>
+        data: Record<string, any>,
+        idempotencyKey?: string
     ): Promise<void> {
-        this.log("debug", `Publishing message to channel: ${channel}`);
+        this.log("debug", `Publishing message to channel: ${channel}${idempotencyKey ? ` with idempotency key: ${idempotencyKey}` : ""}`);
+        
+        // Generate idempotency key if enabled and not provided
+        let finalIdempotencyKey = idempotencyKey;
+        if (this.idempotency.enabled && !idempotencyKey && this.idempotency.generate) {
+            finalIdempotencyKey = this.idempotency.generate(data);
+            this.log("debug", `Generated idempotency key: ${finalIdempotencyKey}`);
+        }
+        
         await this.executeWithQueue(
             "publish",
-            { channel, data },
+            { channel, data, idempotencyKey: finalIdempotencyKey },
             async () => {
                 const apiClient = this.client as CentrifugoAPIClient;
-                await apiClient.publish({ channel, data });
+                const publishOptions: PublishOptions = { channel, data };
+                if (finalIdempotencyKey) {
+                    publishOptions.idempotency_key = finalIdempotencyKey;
+                }
+                await apiClient.publish(publishOptions);
             },
             async () => {
                 const grpcClient = this.client as CentrifugoGRPCClient;
-                await grpcClient.publish(channel, data);
+                await grpcClient.publish(channel, data, finalIdempotencyKey);
             },
             `Job queued for publishing to ${channel}`,
             `Message published to ${channel}`,
@@ -102,23 +126,36 @@ export class Centrifugo {
     }
 
     /**
-     * Broadcast a message to multiple channels
+     * Broadcast a message to multiple channels with optional idempotency support
      */
     async broadcast(
         channels: string[],
-        data: Record<string, any>
+        data: Record<string, any>,
+        idempotencyKey?: string
     ): Promise<void> {
-        this.log("debug", `Broadcasting message to ${channels.length} channels`);
+        this.log("debug", `Broadcasting message to ${channels.length} channels${idempotencyKey ? ` with idempotency key: ${idempotencyKey}` : ""}`);
+        
+        // Generate idempotency key if enabled and not provided
+        let finalIdempotencyKey = idempotencyKey;
+        if (this.idempotency.enabled && !idempotencyKey && this.idempotency.generate) {
+            finalIdempotencyKey = this.idempotency.generate(data);
+            this.log("debug", `Generated idempotency key: ${finalIdempotencyKey}`);
+        }
+        
         await this.executeWithQueue(
             "broadcast",
-            { channels, data },
+            { channels, data, idempotencyKey: finalIdempotencyKey },
             async () => {
                 const apiClient = this.client as CentrifugoAPIClient;
-                await apiClient.broadcast(channels, data);
+                const broadcastOptions: BroadcastOptions = { channels, data };
+                if (finalIdempotencyKey) {
+                    broadcastOptions.idempotency_key = finalIdempotencyKey;
+                }
+                await apiClient.broadcast(broadcastOptions);
             },
             async () => {
                 const grpcClient = this.client as CentrifugoGRPCClient;
-                await grpcClient.broadcast(channels, data);
+                await grpcClient.broadcast(channels, data, finalIdempotencyKey);
             },
             `Job queued for broadcasting to channels: ${channels.join(", ")}`,
             `Broadcast sent to channels: ${channels.join(", ")}`,
@@ -223,15 +260,23 @@ export class Centrifugo {
     }
 
     /**
-     * Start the queue worker
+     * Start the queue worker (lazy loads queue on demand)
      */
     async startQueue(
         handler?: (data: any) => Promise<void>
     ): Promise<void> {
+        // Lazy load queue only when needed
         if (!this.queue) {
-            throw new Error(
-                "Queue is not enabled. Set enableQueue to true in config."
-            );
+            if (!this.config.enableQueue) {
+                throw new Error(
+                    "Queue is not enabled. Set enableQueue to true in config."
+                );
+            }
+            
+            // Dynamically import queue to keep initial bundle small
+            const { CentrifugoQueue } = await import("@queue/queue");
+            this.queue = new CentrifugoQueue(this.config.queueConfig);
+            this.log("info", "Queue lazily loaded and initialized");
         }
 
         const defaultHandler = async (data: any) => {
@@ -334,9 +379,20 @@ export class Centrifugo {
     }
 
     /**
-     * Get the queue instance
+     * Get the queue instance (lazy loads if needed)
      */
-    getQueue(): CentrifugoQueue | null {
+    async getQueue(): Promise<CentrifugoQueue | null> {
+        if (!this.config.enableQueue) {
+            return null;
+        }
+
+        if (!this.queue) {
+            // Lazy load queue on demand
+            const { CentrifugoQueue } = await import("@queue/queue");
+            this.queue = new CentrifugoQueue(this.config.queueConfig);
+            this.log("debug", "Queue lazily loaded");
+        }
+
         return this.queue;
     }
 
@@ -368,20 +424,20 @@ export class Centrifugo {
      * Internal logging method
      */
     private log(
-        level: "error" | "warn" | "info" | "debug",
+        level: LogLevel,
         message: string,
         data?: any
     ): void {
         // Only log if enabled and meets log level threshold
-        const levels = { error: 0, warn: 1, info: 2, debug: 3 };
-        const currentLevel = levels[this.logLevel];
-        const messageLevel = levels[level];
-
-        if (!this.debug && messageLevel > currentLevel) {
+        if (!this.logEnabled) {
             return;
         }
 
-        if (!this.debug && this.logLevel !== "debug" && level === "debug") {
+        const levels: Record<LogLevel, number> = { error: 0, warn: 1, info: 2, debug: 3 };
+        const currentLevel = levels[this.logLevel];
+        const messageLevel = levels[level];
+
+        if (messageLevel > currentLevel) {
             return;
         }
 
@@ -403,17 +459,17 @@ export class Centrifugo {
     }
 
     /**
-     * Enable debug logging
+     * Enable/disable logging
      */
-    setDebug(enabled: boolean): void {
-        this.debug = enabled;
-        this.log("info", `Debug logging ${enabled ? "enabled" : "disabled"}`);
+    setLogging(enabled: boolean): void {
+        this.logEnabled = enabled;
+        this.log("info", `Logging ${enabled ? "enabled" : "disabled"}`);
     }
 
     /**
      * Set log level
      */
-    setLogLevel(level: "error" | "warn" | "info" | "debug"): void {
+    setLogLevel(level: LogLevel): void {
         this.logLevel = level;
         this.log("info", `Log level set to ${level}`);
     }

@@ -82,8 +82,8 @@ describe("Centrifugo SDK - gRPC with Queue Integration Tests", () => {
         expect(result).toBeUndefined();
     });
 
-    test("should get queue instance in gRPC mode", () => {
-        const queue = centrifugo.getQueue();
+    test("should get queue instance in gRPC mode", async () => {
+        const queue = await centrifugo.getQueue();
         expect(queue).toBeDefined();
         expect(queue).not.toBeNull();
     });
