@@ -114,7 +114,8 @@ export class CentrifugoAPIClient {
             );
 
             if (response.data.error) {
-                throw new Error(`Centrifugo API Error: ${response.data.error}`);
+                const errorMsg = JSON.stringify(response.data.error);
+                throw new Error(`Centrifugo API Error: ${errorMsg}`);
             }
         } catch (error) {
             throw new Error(`Failed to publish message: ${error}`);
@@ -144,14 +145,16 @@ export class CentrifugoAPIClient {
 
     async history(options: HistoryOptions): Promise<any[]> {
         try {
+            const payload: any = {
+                channel: options.channel,
+            };
+            if (options.limit !== undefined) payload.limit = options.limit;
+            if (options.since !== undefined) payload.since = options.since;
+            if (options.reverse !== undefined) payload.reverse = options.reverse;
+
             const response = await this.client.post<CentrifugoAPIResponse>(
                 "/api/history",
-                {
-                    channel: options.channel,
-                    limit: options.limit,
-                    since: options.since,
-                    reverse: options.reverse,
-                }
+                payload
             );
 
             if (response.data.error) {

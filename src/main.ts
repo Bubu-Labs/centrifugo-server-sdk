@@ -131,15 +131,24 @@ export class Centrifugo {
      */
     async history(
         channel: string,
-        limit?: number,
+        limitOrOptions?: number | { limit?: number; since?: string; reverse?: boolean },
         since?: string
     ): Promise<Record<string, any>[]> {
+        let options: any = { channel };
+
+        if (typeof limitOrOptions === "number") {
+            options.limit = limitOrOptions;
+            options.since = since;
+        } else if (typeof limitOrOptions === "object" && limitOrOptions !== null) {
+            options = { channel, ...limitOrOptions };
+        }
+
         if (this.mode === CentrifugoMode.API) {
             const apiClient = this.client as CentrifugoAPIClient;
-            return await apiClient.history({ channel, limit, since });
+            return await apiClient.history(options);
         } else {
             const grpcClient = this.client as CentrifugoGRPCClient;
-            return await grpcClient.history(channel, limit);
+            return await grpcClient.history(channel, options.limit);
         }
     }
 

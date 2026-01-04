@@ -57,6 +57,20 @@
         },
         "namespaces": [
             {
+                "name": "general",
+                "allow_subscribe_for_client": true,
+                "allow_publish_for_client": true,
+                "presence": true,
+                "force_recovery": true,
+                "force_recovery_mode": "cache",
+                "force_push_join_leave": false,
+                "history_size": 100,
+                "history_ttl": "1h",
+                "join_leave": true,
+                "allow_presence_for_subscriber": true,
+                "allow_presence_for_client": true
+            },
+            {
                 "name": "public",
                 "allow_subscribe_for_client": true,
                 "allow_publish_for_client": true,
@@ -100,5 +114,10 @@
     },
     "debug": {
         "enabled": true
+    },
+    "prometheus": {
+        "enabled": true,
+        "instrument_http_handlers": true,
+        "channel_namespace_resolution": true
     }
 }
