@@ -3,10 +3,14 @@
   "version": "1.0.0-l1",
   "description": "Server-side SDK for Centrifugo real-time messaging platform",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:Bubu-Labs/centrifugo-server-sdk.git"
+  "homepage": "https://github.com/Bubu-Labs/centrifugo-server-sdk#readme",
+  "repository": "https://github.com/Bubu-Labs/centrifugo-server-sdk",
+  "bugs": {
+    "url": "https://github.com/Bubu-Labs/centrifugo-server-sdk/issues/new"
   },
+  "contributors": [
+    "Bubu <nhanlethanh1198@gmail.com>"
+  ],
   "module": "dist/index.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,8 +28,8 @@
   ],
   "scripts": {
     "build:proto": "proto-loader-gen-types src/grpc/grpc.proto --outDir src/grpc/generated",
-    "build": "bun run build:proto && bun build ./src/index.ts --outdir ./dist --format esm --target node --sourcemap",
-    "build:npm": "bun run build:proto && bun build ./index.ts --outdir ./dist --format esm --target node --external:bullmq --external:ioredis --external:@grpc/grpc-js --external:axios && bun x tsc",
+    "build": "bun run build:proto && bun build ./src/index.ts --outdir ./dist --format esm --target node --sourcemap --minify && bun x tsc",
+    "build:npm": "rm -rf dist && bun run build:proto && bun build ./index.ts --outdir ./dist --format esm --target node --minify --external:bullmq --external:ioredis --external:@grpc/grpc-js --external:axios && bun x tsc",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:verbose": "bun test --verbose",
