@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket support for real-time updates
 - Advanced monitoring and metrics collection
 
+## [1.0.0-l1] - 2026-01-05
+
+### Added
+- **MIT License**: Added MIT License to make the library freely usable in developer projects
+
+### Changed
+- Updated package.json with proper repository link and license field
+
 ## [1.0.0] - 2026-01-04
 
 ### Added

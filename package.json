@@ -1,7 +1,12 @@
 {
   "name": "centrifugo-server-sdk",
-  "version": "1.0.0",
+  "version": "1.0.0-l1",
   "description": "Server-side SDK for Centrifugo real-time messaging platform",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Bubu-Labs/centrifugo-server-sdk.git"
+  },
   "module": "dist/index.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
